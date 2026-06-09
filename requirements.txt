@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+SQLAlchemy
+python-multipart
+aiofiles
+pdfminer.six
+python-docx
+psycopg[binary]
+boto3
+celery[redis]
+elasticsearch

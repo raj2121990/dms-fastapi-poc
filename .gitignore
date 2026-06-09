@@ -1,0 +1,24 @@
+ # Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.sqlite3
+*.db
+*.db-journal
+.DS_Store
+
+# Virtual environment
+.venv/
+venv/
+
+# Uploads and storage
+uploads/
+
+# Editor files
+.vscode/
+.idea/
+*.swp
+
+# Python packaging
+*.egg-info/
