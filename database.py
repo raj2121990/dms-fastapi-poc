@@ -21,7 +21,7 @@ Base = declarative_base()
 
 def init_db():
     """Create database tables and any required support structures."""
-    from models import Document  # noqa: F401
+    from models import Document, User  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
 

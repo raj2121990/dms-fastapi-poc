@@ -31,6 +31,27 @@ def client(app):
     return TestClient(app)
 
 
+@pytest.fixture(scope="session")
+def admin_token(client):
+    response = client.post(
+        "/users",
+        data={"username": "admin", "password": "adminpass", "role": "admin"},
+    )
+    assert response.status_code == 200
+
+    token_response = client.post(
+        "/token",
+        data={"username": "admin", "password": "adminpass"},
+    )
+    assert token_response.status_code == 200
+    return token_response.json()["access_token"]
+
+
+@pytest.fixture
+def auth_headers(admin_token):
+    return {"Authorization": f"Bearer {admin_token}"}
+
+
 def pytest_unconfigure(config):
     try:
         shutil.rmtree(TMP_ROOT)

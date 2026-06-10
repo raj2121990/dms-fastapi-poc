@@ -93,6 +93,19 @@
 - **Preview Generation**: Create thumbnails or excerpts for quick browsing.
 - **Bulk Operations**: Upload multiple files, bulk delete, batch reindex.
 
+## Security and Access Control
+
+> Security should be treated as a baseline requirement, even for a small-scale deployment. Authentication and access control are essential before exposing any upload/search APIs.
+
+- **Authentication**: Add token-based auth (JWT/OAuth2) or API key support for all endpoints.
+- **Authorization**: Implement role-based access control (RBAC) for users such as admin, editor, viewer, and auditor.
+- **Document-level ACLs**: Enforce per-document permissions so owners and collaborators can access only allowed documents.
+- **Audit Logging**: Record access, upload, download, and version operations for compliance.
+- **Endpoint protection**: Require auth for upload, versioning, search, and document retrieval endpoints.
+- **Storage security**: Lock down S3 bucket policies and use server-side encryption for stored files.
+- **Secure search**: Ensure search results are filtered by user permissions before returning hits.
+- **Rate limiting and throttling**: Protect API endpoints against abuse.
+
 ## Infrastructure Considerations
 
 | Layer | Current | Recommended (Scaling) |

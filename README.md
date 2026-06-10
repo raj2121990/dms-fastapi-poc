@@ -95,16 +95,23 @@ This app supports document versioning with immutable version records and a curre
 
 ## Endpoints
 
+- `POST /token` - obtain a bearer token
+- `POST /users` - create a user (first user bootstraps the system; subsequent user creation requires admin authorization)
 - `POST /upload` - upload a document
 - `POST /documents/{id}/versions` - upload a new version for an existing document
-- `GET /documents` - list current document versions
+- `POST /documents/{id}/share` - grant another user access to a document group
+- `DELETE /documents/{id}/share` - revoke a user's access to a document group
+- `GET /documents/{id}/permissions` - list sharing permissions for a document group
+- `GET /documents` - list current document versions accessible to the user
 - `GET /documents/{id}` - retrieve document metadata for a specific version
 - `GET /documents/{id}/versions` - list all versions for a document group
 - `GET /search?q=keyword` - search document contents
+- `GET /download/{id}` - download a document file
 
 ## Notes
 
 - Uploaded files are stored in `uploads/`
 - SQLite database file is `app.db`
 - Metadata can be stored in PostgreSQL by setting `DATABASE_URL`
+- API requests must include an `Authorization: Bearer <token>` header for protected endpoints.
 - Version history is preserved for audit and rollback, while `GET /documents` exposes only the latest version of each document.

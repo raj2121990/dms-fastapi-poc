@@ -19,7 +19,7 @@ from models import Document
 class SearchBackend:
     """Search backend interface."""
 
-    def search(self, db: Session, query: str) -> List[Document]:
+    def search(self, db: Session, query: str, owner_id: int = None, permitted_groups=None) -> List[Document]:
         raise NotImplementedError
 
     def index_document(self, db: Session, document: Document) -> None:
@@ -29,16 +29,22 @@ class SearchBackend:
 class SQLSearchBackend(SearchBackend):
     """Basic SQL search using ILIKE on filename and search_text."""
 
-    def search(self, db: Session, query: str) -> List[Document]:
+    def search(self, db: Session, query: str, owner_id: int = None, permitted_groups=None) -> List[Document]:
         search_term = f"%{query}%"
-        return (
+        query_stmt = (
             db.query(Document)
             .filter(
                 Document.is_current == True,
                 Document.filename.ilike(search_term)
                 | Document.search_text.ilike(search_term),
             )
-            .order_by(Document.created_at.desc())
+        )
+        if owner_id is not None:
+            query_stmt = query_stmt.filter(Document.owner_id == owner_id)
+        if permitted_groups is not None:
+            query_stmt = query_stmt.filter(Document.group_id.in_(permitted_groups or []))
+        return (
+            query_stmt.order_by(Document.created_at.desc())
             .limit(50)
             .all()
         )
@@ -50,18 +56,24 @@ class SQLSearchBackend(SearchBackend):
 class TsvectorSearchBackend(SearchBackend):
     """PostgreSQL full-text search using tsvector and tsquery."""
 
-    def search(self, db: Session, query: str) -> List[Document]:
+    def search(self, db: Session, query: str, owner_id: int = None, permitted_groups=None) -> List[Document]:
         ts_query = func.plainto_tsquery(SEARCH_LANGUAGE, query)
         vector = func.to_tsvector(
             SEARCH_LANGUAGE,
             func.coalesce(Document.search_text, ""),
         )
         rank = func.ts_rank_cd(vector, ts_query)
-        return (
+        query_stmt = (
             db.query(Document)
             .filter(Document.is_current == True)
             .filter(vector.op("@@")(ts_query))
-            .order_by(rank.desc())
+        )
+        if owner_id is not None:
+            query_stmt = query_stmt.filter(Document.owner_id == owner_id)
+        if permitted_groups is not None:
+            query_stmt = query_stmt.filter(Document.group_id.in_(permitted_groups or []))
+        return (
+            query_stmt.order_by(rank.desc())
             .limit(50)
             .all()
         )
@@ -85,6 +97,7 @@ class ElasticsearchSearchBackend(SearchBackend):
                         "group_id": {"type": "keyword"},
                         "document_id": {"type": "integer"},
                         "version_number": {"type": "integer"},
+                        "owner_id": {"type": "integer"},
                         "filename": {"type": "text"},
                         "search_text": {"type": "text"},
                     }
@@ -92,7 +105,7 @@ class ElasticsearchSearchBackend(SearchBackend):
             }
             self.client.indices.create(index=ELASTICSEARCH_INDEX, body=mapping)
 
-    def search(self, db: Session, query: str) -> List[Document]:
+    def search(self, db: Session, query: str, owner_id: int = None, permitted_groups=None) -> List[Document]:
         search_body = {
             "query": {
                 "multi_match": {
@@ -111,8 +124,12 @@ class ElasticsearchSearchBackend(SearchBackend):
         documents = (
             db.query(Document)
             .filter(Document.id.in_(document_ids), Document.is_current == True)
-            .all()
         )
+        if owner_id is not None:
+            documents = documents.filter(Document.owner_id == owner_id)
+        if permitted_groups is not None:
+            documents = documents.filter(Document.group_id.in_(permitted_groups or []))
+        documents = documents.all()
         return sorted(documents, key=lambda doc: document_ids.index(doc.id))
 
     def index_document(self, db: Session, document: Document) -> None:
@@ -120,6 +137,7 @@ class ElasticsearchSearchBackend(SearchBackend):
             "group_id": document.group_id,
             "document_id": document.id,
             "version_number": document.version_number,
+            "owner_id": document.owner_id,
             "filename": document.filename,
             "search_text": document.search_text or "",
         }

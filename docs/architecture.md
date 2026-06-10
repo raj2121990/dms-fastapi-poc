@@ -9,6 +9,8 @@ The application supports two kinds of storage:
 - `local`: files are kept on the server filesystem under `uploads/`
 - `s3`: files are uploaded to an S3-compatible object store
 
+The API also enforces bearer token authentication and document sharing permissions.
+
 It also supports hybrid processing:
 
 - small files are processed synchronously during upload
@@ -22,11 +24,13 @@ This diagram is expressed in Mermaid syntax for compatibility with supported Mar
 flowchart LR
   Client[Client]
   API[API Server]
+  Auth[Auth / Token Service]
   Storage[Storage - Local or S3]
   DB[(Database)]
   Worker[Worker]
   Elastic[(Elasticsearch / OpenSearch)]
-  Client -->|upload/search/download| API
+  Client -->|authenticate / upload/search/download| API
+  API -->|validate token| Auth
   API -->|store file| Storage
   API -->|save metadata| DB
   API -- "search SQL_TSV" --> DB
@@ -46,7 +50,7 @@ flowchart LR
 Client sends `POST /upload` with:
 
 - `file` as multipart upload
-- optional `owner`
+- Bearer token in `Authorization`
 
 ### 2. API server handles upload
 
@@ -104,6 +108,17 @@ The Celery worker executes `process_document(document_id)`:
 - `GET /documents/{id}/versions` returns all versions that belong to the same `group_id`.
 - `GET /documents/{id}` returns metadata for the requested version, current or historical.
 
+## Authentication and permissions lifecycle
+
+The API requires bearer token authentication for document operations.
+
+1. The client obtains a token by POSTing credentials to `POST /token`.
+2. The first user can be created with `POST /users` without prior authentication; subsequent user creation requires an admin token.
+3. Each protected endpoint validates the bearer token and resolves the current user.
+4. Document owners and users with explicit permissions can access metadata, download files, and search versions.
+5. Sharing permissions are managed through `POST /documents/{id}/share`, `DELETE /documents/{id}/share`, and `GET /documents/{id}/permissions`.
+6. Search results are filtered by the user’s allowed document groups.
+
 ## Search lifecycle
 
 Client requests `GET /search?q=keyword`.
@@ -146,6 +161,8 @@ The `Document` model includes:
 - `base_version_id`
 - `created_at`
 - `updated_at`
+
+Sharing permissions are stored in a separate `document_permissions` table mapping `group_id` to users with `read` or `write` access.
 
 ## Configuration points
 
