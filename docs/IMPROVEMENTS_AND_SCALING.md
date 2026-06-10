@@ -108,10 +108,10 @@
 
 ## Implementation Priority
 
-1. **Phase 1**: Connection pooling, caching, read replicas (1-2 weeks).
-2. **Phase 2**: Kafka integration, bulk indexing, auto-scaling (3-4 weeks).
-3. **Phase 3**: Multi-region, delta storage, advanced search (5-8 weeks).
-4. **Phase 4**: OCR, webhooks, observability stack (ongoing).
+1. **Phase 1**: Connection pooling, caching, read replicas.
+2. **Phase 2**: Kafka integration, bulk indexing, auto-scaling.
+3. **Phase 3**: Multi-region, delta storage, advanced search.
+4. **Phase 4**: OCR, webhooks, observability stack.
 
 ## Sample Kafka Architecture
 
